@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getMediaUrl, downloadMedia } from '@/lib/whatsapp/meta-api'
 import { decrypt } from '@/lib/whatsapp/encryption'
+import { getT } from '@/lib/i18n/translate'
+
+const t = getT('Api')
 
 export async function GET(
   request: Request,
@@ -12,7 +15,7 @@ export async function GET(
 
     if (!mediaId) {
       return NextResponse.json(
-        { error: 'Media ID is required' },
+        { error: t('media.idRequired') },
         { status: 400 }
       )
     }
@@ -26,8 +29,25 @@ export async function GET(
 
     if (authError || !user) {
       return NextResponse.json(
-        { error: 'Unauthorized' },
+        { error: t('common.unauthorized') },
         { status: 401 }
+      )
+    }
+
+    // Resolve the caller's account_id — whatsapp_config is one-per-
+    // account post-multi-user, so a teammate fetching media for a
+    // conversation in the shared inbox needs the account's config,
+    // not their personal (non-existent) row.
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('account_id')
+      .eq('user_id', user.id)
+      .maybeSingle()
+    const accountId = profile?.account_id as string | undefined
+    if (!accountId) {
+      return NextResponse.json(
+        { error: t('common.profileNotLinked') },
+        { status: 403 },
       )
     }
 
@@ -35,12 +55,12 @@ export async function GET(
     const { data: config, error: configError } = await supabase
       .from('whatsapp_config')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('account_id', accountId)
       .single()
 
     if (configError || !config) {
       return NextResponse.json(
-        { error: 'WhatsApp not configured' },
+        { error: t('common.whatsappNotConfigured') },
         { status: 400 }
       )
     }
@@ -66,7 +86,7 @@ export async function GET(
   } catch (error) {
     console.error('Error in WhatsApp media GET:', error)
     return NextResponse.json(
-      { error: 'Failed to fetch media' },
+      { error: t('media.fetchFailed') },
       { status: 500 }
     )
   }
