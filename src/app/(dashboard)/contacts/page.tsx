@@ -44,8 +44,11 @@ import {
 import { ContactForm } from '@/components/contacts/contact-form';
 import { ContactDetailView } from '@/components/contacts/contact-detail-view';
 import { ImportModal } from '@/components/contacts/import-modal';
+import { useCan } from '@/hooks/use-can';
 
 const PAGE_SIZE = 25;
+const READ_ONLY_TITLE =
+  "Read-only — your role can't add or import contacts";
 
 interface ContactWithTags extends Contact {
   tags?: Tag[];
@@ -53,6 +56,7 @@ interface ContactWithTags extends Contact {
 
 export default function ContactsPage() {
   const supabase = createClient();
+  const canEdit = useCan('send-messages');
 
   const [contacts, setContacts] = useState<ContactWithTags[]>([]);
   const [loading, setLoading] = useState(true);
@@ -219,6 +223,8 @@ export default function ContactsPage() {
           <Button
             variant="outline"
             onClick={() => setImportOpen(true)}
+            disabled={!canEdit}
+            title={canEdit ? undefined : READ_ONLY_TITLE}
             className="border-slate-700 text-slate-300 hover:bg-slate-800"
           >
             <Upload className="size-4" />
@@ -226,7 +232,9 @@ export default function ContactsPage() {
           </Button>
           <Button
             onClick={openAddForm}
-            className="bg-violet-600 hover:bg-violet-700 text-white"
+            disabled={!canEdit}
+            title={canEdit ? undefined : READ_ONLY_TITLE}
+            className="bg-primary hover:bg-primary/90 text-primary-foreground"
           >
             <Plus className="size-4" />
             Add Contact
@@ -269,7 +277,7 @@ export default function ContactsPage() {
               <TableRow className="border-slate-800">
                 <TableCell colSpan={7} className="text-center py-12">
                   <div className="flex flex-col items-center gap-2">
-                    <Loader2 className="size-6 animate-spin text-violet-500" />
+                    <Loader2 className="size-6 animate-spin text-primary" />
                     <p className="text-sm text-slate-500">Loading contacts...</p>
                   </div>
                 </TableCell>

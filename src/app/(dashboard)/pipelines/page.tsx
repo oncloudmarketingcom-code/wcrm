@@ -26,6 +26,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { GitBranch, Plus, ChevronDown, Settings } from "lucide-react";
 import { toast } from "sonner";
+import { useCan } from "@/hooks/use-can";
+
+// Pipeline creation is admin-class (it's a settings-tier write
+// under the new RLS), but deal creation is operational and only
+// requires agent+. The two CTAs gate on different capabilities.
+const PIPELINE_READ_ONLY_TITLE =
+  "Read-only — your role can't create pipelines";
+const DEAL_READ_ONLY_TITLE = "Read-only — your role can't create deals";
 
 // Spec-defined seed — name and color per the product spec.
 const SPEC_DEFAULT_STAGES = [
@@ -38,6 +46,8 @@ const SPEC_DEFAULT_STAGES = [
 
 export default function PipelinesPage() {
   const supabase = createClient();
+  const canEditSettings = useCan("edit-settings");
+  const canCreateDeals = useCan("send-messages");
 
   const [pipelines, setPipelines] = useState<Pipeline[]>([]);
   const [selectedPipelineId, setSelectedPipelineId] = useState<string>("");
@@ -302,7 +312,7 @@ export default function PipelinesPage() {
             <DropdownMenuTrigger
               className="inline-flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white hover:bg-slate-800 transition-colors data-[popup-open]:bg-slate-800"
             >
-              <GitBranch className="h-4 w-4 text-violet-500" />
+              <GitBranch className="h-4 w-4 text-primary" />
               <span className="font-semibold">
                 {selectedPipeline?.name ?? "Select Pipeline"}
               </span>
@@ -323,7 +333,7 @@ export default function PipelinesPage() {
                   onClick={() => setSelectedPipelineId(p.id)}
                   className={
                     p.id === selectedPipelineId
-                      ? "text-violet-400"
+                      ? "text-primary"
                       : "text-slate-300"
                   }
                 >
@@ -349,6 +359,8 @@ export default function PipelinesPage() {
           <Button
             variant="outline"
             onClick={() => setNewPipelineOpen(true)}
+            disabled={!canEditSettings}
+            title={canEditSettings ? undefined : PIPELINE_READ_ONLY_TITLE}
             className="border-slate-700 bg-slate-900 text-slate-200 hover:bg-slate-800"
           >
             <Plus className="mr-1 h-4 w-4" />
@@ -356,8 +368,11 @@ export default function PipelinesPage() {
           </Button>
           <Button
             onClick={() => handleAddDeal()}
-            disabled={!selectedPipelineId || stages.length === 0}
-            className="bg-violet-600 text-white hover:bg-violet-700"
+            disabled={
+              !canCreateDeals || !selectedPipelineId || stages.length === 0
+            }
+            title={canCreateDeals ? undefined : DEAL_READ_ONLY_TITLE}
+            className="bg-primary text-primary-foreground hover:bg-primary/90"
           >
             <Plus className="mr-1 h-4 w-4" />
             Add Deal
@@ -377,7 +392,9 @@ export default function PipelinesPage() {
           </p>
           <Button
             onClick={() => setNewPipelineOpen(true)}
-            className="mt-4 bg-violet-600 text-white hover:bg-violet-700"
+            disabled={!canEditSettings}
+            title={canEditSettings ? undefined : PIPELINE_READ_ONLY_TITLE}
+            className="mt-4 bg-primary text-primary-foreground hover:bg-primary/90"
           >
             <Plus className="mr-1 h-4 w-4" />
             Create Pipeline
@@ -428,7 +445,7 @@ export default function PipelinesPage() {
             <Button
               onClick={handleCreatePipeline}
               disabled={creating || !newPipelineName.trim()}
-              className="bg-violet-600 text-white hover:bg-violet-700"
+              className="bg-primary text-primary-foreground hover:bg-primary/90"
             >
               {creating ? "Creating..." : "Create Pipeline"}
             </Button>
