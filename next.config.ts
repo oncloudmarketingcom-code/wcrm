@@ -90,7 +90,7 @@ const nextConfig: NextConfig = {
    * below — Next.js merges headers from every matching rule, so
    * they apply to every response regardless of which cache rule
    * matched.
-   */ };
+   */
   async headers() {
     return [
       {
